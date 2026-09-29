@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Search, LayoutDashboard, MonitorPlay, MapPin, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Search, LayoutDashboard, MonitorPlay, MapPin, AlertTriangle, BarChart3, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -12,6 +13,7 @@ const NAV_ITEMS = [
 
 const TopNav: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <nav className="top-nav">
@@ -44,6 +46,15 @@ const TopNav: React.FC = () => {
             {label}
           </NavLink>
         ))}
+        <button
+          type="button"
+          className="theme-toggle-btn"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
       </div>
     </nav>
   );

@@ -33,7 +33,7 @@ class UrbanEvent(Base):
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     timestamp = Column(DateTime, default=utc_now, nullable=False)
-    status = Column(String(50), default="ACTIVE", index=True)  # ACTIVE, RESOLVED, INVESTIGATING
+    status = Column(String(50), default="ACTIVE", index=True)  # ACTIVE, RESOLVED, INVESTIGATING, ASSIGNED
     priority = Column(String(50), default="MEDIUM")  # LOW, MEDIUM, HIGH, CRITICAL
     bus_id = Column(Integer, ForeignKey("buses.id"), nullable=False)
     evidence_path = Column(String(255), nullable=True)
@@ -41,6 +41,33 @@ class UrbanEvent(Base):
     is_demo_data = Column(Boolean, default=False, nullable=False)
 
     bus = relationship("Bus", back_populates="events")
+    contractor_notices = relationship(
+        "ContractorNotice", back_populates="event", cascade="all, delete-orphan"
+    )
+
+
+class ContractorNotice(Base):
+    """
+    A repair notice dispatched to a contractor for a road-defect event.
+
+    NOTE: this records the dispatch, it does not deliver it. Actually sending
+    email/SMS needs real SMTP/provider credentials, which this deployment
+    does not have - so `delivery_status` stays RECORDED rather than claiming
+    a send that never happened.
+    """
+    __tablename__ = "contractor_notices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("urban_events.id"), nullable=False, index=True)
+    contractor_name = Column(String(150), nullable=False)
+    phone = Column(String(50), nullable=False)
+    email = Column(String(150), nullable=False)
+    warranty_remaining = Column(String(100), nullable=True)
+    notes = Column(String(500), nullable=True)
+    delivery_status = Column(String(50), default="RECORDED", nullable=False)
+    sent_at = Column(DateTime, default=utc_now, nullable=False)
+
+    event = relationship("UrbanEvent", back_populates="contractor_notices")
 
 
 class TrafficObservation(Base):

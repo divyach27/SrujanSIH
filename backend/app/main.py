@@ -11,7 +11,7 @@ from app.models import Bus
 from app.services.seed import seed_database
 from app.schemas import HealthResponse
 
-from app.routers import bus, events, analytics, monitoring, video
+from app.routers import bus, events, analytics, monitoring, video, hazard
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,6 +44,7 @@ app.include_router(events.router)
 app.include_router(analytics.router)
 app.include_router(monitoring.router)
 app.include_router(video.router)
+app.include_router(hazard.router)
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 def health_check(db: Session = Depends(get_db)):

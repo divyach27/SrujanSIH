@@ -73,6 +73,48 @@ class UrbanEventResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class EventStatusUpdate(BaseModel):
+    status: str = Field(..., description="ACTIVE, INVESTIGATING, ASSIGNED or RESOLVED")
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        allowed = {"ACTIVE", "INVESTIGATING", "ASSIGNED", "RESOLVED"}
+        normalized = v.strip().upper()
+        if normalized not in allowed:
+            raise ValueError(f"status must be one of {sorted(allowed)}")
+        return normalized
+
+# ==========================================
+# CONTRACTOR NOTICE SCHEMAS
+# ==========================================
+
+class ContractorNoticeCreate(BaseModel):
+    contractor_name: str = Field(..., min_length=1, max_length=150)
+    phone: str = Field(..., min_length=1, max_length=50)
+    email: str = Field(..., min_length=3, max_length=150)
+    warranty_remaining: Optional[str] = Field(default=None, max_length=100)
+    notes: Optional[str] = Field(default=None, max_length=500)
+
+class ContractorNoticeResponse(BaseModel):
+    id: int
+    event_id: int
+    contractor_name: str
+    phone: str
+    email: str
+    warranty_remaining: Optional[str] = None
+    notes: Optional[str] = None
+    delivery_status: str
+    sent_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ContractorNoticeResult(BaseModel):
+    notice: ContractorNoticeResponse
+    event: UrbanEventResponse
+    message: str
+
 # ==========================================
 # TRAFFIC OBSERVATION SCHEMAS
 # ==========================================
@@ -163,6 +205,75 @@ class MonitoringActionResponse(BaseModel):
     success: bool
     message: str
     status: MonitoringStatusResponse
+
+# ==========================================
+# HAZARD CLIP ANALYSIS SCHEMAS
+# ==========================================
+
+class DetectionItem(BaseModel):
+    track_id: int
+    confidence: float
+    first_seen_seconds: float
+    hits: int
+    thumbnail_base64: Optional[str] = None
+
+class VehicleBreakdown(BaseModel):
+    car: float
+    motorcycle: float
+    bus: float
+    truck: float
+
+class HazardAnalysisResponse(BaseModel):
+    frames_analyzed: int
+    video_duration_seconds: float
+    pothole_model_loaded: bool
+    message: Optional[str] = None
+    events_saved: int = 0
+
+    pothole_count: int = 0
+    potholes: List[DetectionItem] = []
+
+    crosswalk_count: int = 0
+    crosswalks: List[DetectionItem] = []
+
+    water_clogging_count: int = 0
+    water_clogging: List[DetectionItem] = []
+
+    vehicles_avg_per_frame: VehicleBreakdown = VehicleBreakdown(car=0, motorcycle=0, bus=0, truck=0)
+    vehicles_peak_in_frame: VehicleBreakdown = VehicleBreakdown(car=0, motorcycle=0, bus=0, truck=0)
+
+# ==========================================
+# DASHBOARD TIME-SERIES SCHEMAS
+# ==========================================
+
+class DailyCount(BaseModel):
+    date: str          # YYYY-MM-DD
+    count: int
+
+class HourlyCount(BaseModel):
+    hour: int          # 0-23
+    count: int
+
+class TrafficTrendPoint(BaseModel):
+    bucket: str        # YYYY-MM-DD HH:MM
+    avg_vehicles: float
+    observations: int
+
+class PeriodBreakdown(BaseModel):
+    """Counts for one time window: the focus type vs everything else."""
+    label: str          # "Day" | "Week" | "Month"
+    potholes: int = 0
+    other_events: int = 0
+    total: int = 0
+
+class DashboardTrends(BaseModel):
+    events_per_day: List[DailyCount] = []
+    events_by_hour: List[HourlyCount] = []
+    traffic_trend: List[TrafficTrendPoint] = []
+    events_by_type: Dict[str, int] = {}
+    pothole_periods: List[PeriodBreakdown] = []
+    total_events: int = 0
+    has_data: bool = False
 
 # ==========================================
 # HEALTH SCHEMA

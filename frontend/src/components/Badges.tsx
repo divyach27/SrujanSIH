@@ -17,7 +17,7 @@ export const ProvenanceBadge: React.FC<ProvenanceBadgeProps> = ({ source, is_dem
     return <span className="badge badge-seed">Demo Data</span>;
   }
   if (source === 'MANUAL_TEST') {
-    return <span className="badge" style={{ background: 'rgba(224,184,48,0.15)', color: '#e0b830', borderColor: 'rgba(224,184,48,0.3)' }}>Manual Test</span>;
+    return <span className="badge" style={{ background: 'rgba(var(--amber-rgb), 0.15)', color: 'var(--amber)', borderColor: 'rgba(var(--amber-rgb), 0.35)' }}>Manual Test</span>;
   }
   return <span className="badge badge-seed">{source}</span>;
 };
@@ -34,6 +34,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     ACTIVE: 'badge-active',
     RESOLVED: 'badge-resolved',
     INVESTIGATING: 'badge-investigating',
+    ASSIGNED: 'badge-assigned',
   };
   return <span className={`badge ${cls[status?.toUpperCase()] || 'badge-resolved'}`}>{status}</span>;
 };

@@ -8,9 +8,9 @@ interface ErrorAlertProps {
 
 const ErrorAlert: React.FC<ErrorAlertProps> = ({ message, onRetry }) => (
   <div className="error-alert" role="alert">
-    <AlertTriangle size={16} style={{ color: '#f43f5e', flexShrink: 0, marginTop: 1 }} />
+    <AlertTriangle size={16} style={{ color: 'var(--rose)', flexShrink: 0, marginTop: 1 }} />
     <div style={{ flex: 1 }}>
-      <div style={{ fontWeight: 600, marginBottom: 2, color: '#f43f5e' }}>Error</div>
+      <div style={{ fontWeight: 600, marginBottom: 2, color: 'var(--rose)' }}>Error</div>
       <div>{message}</div>
     </div>
     {onRetry && (

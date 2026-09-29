@@ -1,27 +1,33 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Cpu, Camera, Navigation, Activity, ChevronRight } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorAlert from '../components/ErrorAlert';
 import { StatusBadge, PriorityBadge, ProvenanceBadge, StatusDot } from '../components/Badges';
-import { getDashboard, getMonitoringStatus } from '../services/api';
+import PotholeDonut from '../components/PotholeDonut';
+import { getDashboard, getMonitoringStatus, getDashboardTrends } from '../services/api';
 import { formatIST } from '../utils/date';
-import type { DashboardStats, MonitoringStatus } from '../types';
+import type { DashboardStats, MonitoringStatus, DashboardTrends } from '../types';
 
 const CommandCenter: React.FC = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [monitoring, setMonitoring] = useState<MonitoringStatus | null>(null);
+  const [trends, setTrends] = useState<DashboardTrends | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [, setLastRefreshed] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [dashboard, mon] = await Promise.all([
+      const [dashboard, mon, tr] = await Promise.all([
         getDashboard(),
         getMonitoringStatus().catch(() => null),
+        getDashboardTrends().catch(() => null),
       ]);
       setStats(dashboard);
       setMonitoring(mon);
+      setTrends(tr);
       setLastRefreshed(new Date());
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load dashboard data from backend.');
@@ -86,21 +92,21 @@ const CommandCenter: React.FC = () => {
             {/* Quick Access Panel */}
             <div className="quick-access">
               <div className="quick-access-title">Quick Access</div>
-              <div className="quick-access-item">
+              <div className="quick-access-item" onClick={() => navigate('/live')} role="button" tabIndex={0}>
                 <span className="prefix">[+]</span>
-                <span>New Event</span>
+                <span>Analyse New Clip</span>
               </div>
-              <div className="quick-access-item">
+              <div className="quick-access-item" onClick={() => navigate('/issues')} role="button" tabIndex={0}>
                 <span className="prefix">{'[>]'}</span>
                 <span>All Events</span>
               </div>
-              <div className="quick-access-item">
+              <div className="quick-access-item" onClick={() => navigate('/map')} role="button" tabIndex={0}>
                 <span className="prefix">{'[>]'}</span>
                 <span>View Map</span>
               </div>
-              <div className="quick-access-item">
+              <div className="quick-access-item" onClick={() => navigate('/traffic')} role="button" tabIndex={0}>
                 <span className="prefix">{'[>]'}</span>
-                <span>View Issues</span>
+                <span>Traffic Intelligence</span>
               </div>
             </div>
 
@@ -118,14 +124,21 @@ const CommandCenter: React.FC = () => {
                 </div>
               ) : (
                 activeEvents.slice(0, 5).map((ev) => (
-                  <div key={ev.id} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.5rem 0',
-                    borderBottom: '1px solid rgba(58, 45, 92, 0.3)',
-                    fontSize: '0.75rem'
-                  }}>
+                  <div
+                    key={ev.id}
+                    onClick={() => navigate('/issues')}
+                    role="button"
+                    tabIndex={0}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.5rem 0',
+                      borderBottom: '1px solid rgba(var(--border-default-rgb), 0.6)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                    }}
+                  >
                     <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
                       {ev.event_type}
                     </span>
@@ -157,7 +170,7 @@ const CommandCenter: React.FC = () => {
                       alignItems: 'center',
                       gap: '0.75rem',
                       padding: '0.5rem 0',
-                      borderBottom: '1px solid rgba(58, 45, 92, 0.3)',
+                      borderBottom: '1px solid rgba(var(--border-default-rgb), 0.6)',
                       fontSize: '0.75rem'
                     }}>
                       <PriorityBadge priority={priority} />
@@ -174,20 +187,37 @@ const CommandCenter: React.FC = () => {
                 <div className="card-title">Detection Timeline</div>
                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Last 7 Days</span>
               </div>
-              <div className="chart-bars">
-                {[35, 65, 45, 80, 55, 70, 40].map((height, i) => (
-                  <div key={i} className="chart-bar" style={{ height: `${height}%` }} />
-                ))}
-              </div>
-              <div className="chart-labels">
-                <span className="chart-label">Mon</span>
-                <span className="chart-label">Tue</span>
-                <span className="chart-label">Wed</span>
-                <span className="chart-label">Thu</span>
-                <span className="chart-label">Fri</span>
-                <span className="chart-label">Sat</span>
-                <span className="chart-label">Sun</span>
-              </div>
+              {(() => {
+                const days = trends?.events_per_day ?? [];
+                const peak = Math.max(1, ...days.map((d) => d.count));
+                return (
+                  <>
+                    <div className="chart-bars">
+                      {days.map((d) => (
+                        <div
+                          key={d.date}
+                          className="chart-bar"
+                          title={`${d.date}: ${d.count} event${d.count === 1 ? '' : 's'}`}
+                          style={{
+                            height: `${d.count === 0 ? 2 : Math.max(8, (d.count / peak) * 100)}%`,
+                            opacity: d.count === 0 ? 0.35 : 1,
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div className="chart-labels">
+                      {days.map((d) => (
+                        <span className="chart-label" key={d.date}>
+                          {new Date(d.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short' })}
+                        </span>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                      Peak {peak} / day &middot; {days.reduce((s, d) => s + d.count, 0)} total this week
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
@@ -196,75 +226,95 @@ const CommandCenter: React.FC = () => {
             {/* Monitoring Timeline / Today's Schedule */}
             <div className="card">
               <div className="card-header">
-                <div className="card-title">Monitoring Timeline</div>
+                <div className="card-title">Traffic Trend</div>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>avg vehicles/frame</span>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {['09:00', '10:30', '12:00', '02:15', '03:30', '04:45'].map((time, i) => (
-                  <div key={i} className={`time-slot ${i < 3 ? 'active' : 'inactive'}`}>
-                    {time}
-                    <span className="ampm">{i < 2 ? 'am' : i === 2 ? 'am' : 'pm'}</span>
-                  </div>
-                ))}
-              </div>
+              {(() => {
+                const pts = trends?.traffic_trend ?? [];
+                if (pts.length === 0) {
+                  return (
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', padding: '0.75rem 0' }}>
+                      No traffic observations recorded yet.
+                    </div>
+                  );
+                }
+                const peak = Math.max(...pts.map((p) => p.avg_vehicles), 0.01);
+                return (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 90 }}>
+                      {pts.map((p) => (
+                        <div
+                          key={p.bucket}
+                          title={`${p.bucket} - ${p.avg_vehicles} avg (${p.observations} obs)`}
+                          style={{
+                            flex: 1,
+                            minWidth: 2,
+                            height: `${Math.max(3, (p.avg_vehicles / peak) * 100)}%`,
+                            background: 'var(--olive)',
+                            borderRadius: '2px 2px 0 0',
+                            opacity: 0.85,
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                      {pts.length} buckets &middot; peak {peak.toFixed(2)} &middot; latest {pts[pts.length - 1].bucket.slice(-5)}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Event Density Heatmap */}
             <div className="card">
               <div className="card-header">
-                <div className="card-title">Event Density</div>
+                <div className="card-title">Event Density by Hour</div>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>All recorded events</span>
               </div>
-              <div className="heatmap-grid">
-                {/* Hour labels */}
-                <div className="heatmap-label">6am</div>
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.2)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.15)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.1)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.05)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.2)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.15)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.1)' }} />
-
-                <div className="heatmap-label">12pm</div>
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.3)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.4)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.25)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.35)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.45)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.3)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.2)' }} />
-
-                <div className="heatmap-label">6pm</div>
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.5)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.6)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.4)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.55)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.7)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.5)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.35)' }} />
-
-                <div className="heatmap-label">9pm</div>
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.2)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.25)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.15)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.2)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.3)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.2)' }} />
-                <div className="heatmap-cell" style={{ background: 'rgba(201, 162, 39, 0.15)' }} />
-              </div>
-              <div className="heatmap-legend">
-                <div className="legend-item">
-                  <div className="legend-swatch" style={{ background: 'rgba(201, 162, 39, 0.15)' }} />
-                  <span>Low</span>
-                </div>
-                <div className="legend-item">
-                  <div className="legend-swatch" style={{ background: 'rgba(201, 162, 39, 0.4)' }} />
-                  <span>Medium</span>
-                </div>
-                <div className="legend-item">
-                  <div className="legend-swatch" style={{ background: 'rgba(201, 162, 39, 0.7)' }} />
-                  <span>High</span>
-                </div>
-              </div>
+              {(() => {
+                const hours = trends?.events_by_hour ?? [];
+                const peak = Math.max(1, ...hours.map((h) => h.count));
+                const rows = [0, 6, 12, 18];
+                return (
+                  <>
+                    <div className="heatmap-grid">
+                      {rows.map((start) => (
+                        <React.Fragment key={start}>
+                          <div className="heatmap-label">
+                            {start === 0 ? '12am' : start === 12 ? '12pm' : start < 12 ? `${start}am` : `${start - 12}pm`}
+                          </div>
+                          {hours.slice(start, start + 6).map((h) => (
+                            <div
+                              key={h.hour}
+                              className="heatmap-cell"
+                              title={`${h.hour}:00 - ${h.count} event${h.count === 1 ? '' : 's'}`}
+                              style={{
+                                background: h.count === 0
+                                  ? 'rgba(var(--border-default-rgb), 0.35)'
+                                  : `rgba(var(--olive-rgb), ${(0.18 + 0.62 * (h.count / peak)).toFixed(2)})`,
+                              }}
+                            />
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                    <div className="heatmap-legend">
+                      <div className="legend-item">
+                        <div className="legend-swatch" style={{ background: 'rgba(var(--border-default-rgb), 0.35)' }} />
+                        <span>None</span>
+                      </div>
+                      <div className="legend-item">
+                        <div className="legend-swatch" style={{ background: 'rgba(var(--olive-rgb), 0.35)' }} />
+                        <span>Low</span>
+                      </div>
+                      <div className="legend-item">
+                        <div className="legend-swatch" style={{ background: 'rgba(var(--olive-rgb), 0.8)' }} />
+                        <span>Peak ({peak})</span>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Detection Results */}
@@ -285,6 +335,15 @@ const CommandCenter: React.FC = () => {
                 <span className="result-label" style={{ color: 'var(--emerald)' }}>Normal</span>
               </div>
             </div>
+          </div>
+
+          {/* Pothole share by period */}
+          <div className="card" style={{ marginTop: '1rem' }}>
+            <div className="card-header">
+              <div className="card-title">Potholes Detected</div>
+              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>rolling window</span>
+            </div>
+            <PotholeDonut periods={trends?.pothole_periods ?? []} />
           </div>
 
           {/* Recent Events Table */}

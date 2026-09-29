@@ -44,6 +44,7 @@ edge-ai/videos/*.mkv
 # YOLO model weights (large files)
 *.pt
 *.pth
+*.onnx
 # Bus-CV vehicle model required for Railway deployment (Root Directory=backend).
 # The pothole model is intentionally NOT exempted here and remains untracked.
 !backend/app/edge_ai/yolo11n.pt

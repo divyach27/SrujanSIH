@@ -7,6 +7,11 @@ import type {
   MonitoringActionResponse,
   HealthResponse,
   BusRoute,
+  HazardAnalysisResponse,
+  DashboardTrends,
+  EventStatus,
+  ContractorNoticeInput,
+  ContractorNoticeResult,
 } from '../types';
 
 export const API_BASE_URL =
@@ -66,6 +71,9 @@ export const getBusRoute = (): Promise<BusRoute> =>
 export const getDashboard = (): Promise<DashboardStats> =>
   apiFetch('/api/dashboard');
 
+export const getDashboardTrends = (days = 7): Promise<DashboardTrends> =>
+  apiFetch(`/api/dashboard/trends?days=${days}`);
+
 // ==========================================
 // URBAN EVENTS
 // ==========================================
@@ -82,6 +90,21 @@ export const getEvent = (id: number): Promise<UrbanEvent> =>
 
 export const resolveEvent = (id: number): Promise<UrbanEvent> =>
   apiFetch(`/api/events/${id}/resolve`, { method: 'PATCH' });
+
+export const updateEventStatus = (id: number, status: EventStatus): Promise<UrbanEvent> =>
+  apiFetch(`/api/events/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+
+export const sendContractorNotice = (
+  id: number,
+  payload: ContractorNoticeInput,
+): Promise<ContractorNoticeResult> =>
+  apiFetch(`/api/events/${id}/contractor-notice`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 
 // ==========================================
 // TRAFFIC
@@ -100,5 +123,41 @@ export const startMonitoring = (): Promise<MonitoringActionResponse> =>
 
 export const stopMonitoring = (): Promise<MonitoringActionResponse> =>
   apiFetch('/api/monitoring/stop', { method: 'POST' });
+
+// ==========================================
+// HAZARD ANALYSIS
+// ==========================================
+export const analyzeHazardClip = async (
+  file: File,
+  location?: { latitude: number; longitude: number } | null,
+): Promise<HazardAnalysisResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  // Sent so confirmed hazards can be stored as real, located events; without
+  // it the analysis still runs, it just isn't persisted to the dashboard.
+  if (location) {
+    formData.append('latitude', String(location.latitude));
+    formData.append('longitude', String(location.longitude));
+  }
+
+  // Not routed through apiFetch: that helper forces a JSON Content-Type header,
+  // which would break the multipart boundary the browser needs to set itself
+  // for a FormData body.
+  const res = await fetch(`${BASE_URL}/api/hazard/analyze`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.ok) {
+    let detail = `HTTP ${res.status}`;
+    try {
+      const body = await res.json();
+      detail = body?.detail || detail;
+    } catch { /* empty */ }
+    throw new ApiError(detail, res.status);
+  }
+
+  return res.json();
+};
 
 export { ApiError };

@@ -12,7 +12,7 @@ function trafficLevelStyle(level: string) {
   switch (level?.toUpperCase()) {
     case 'LOW': return { color: 'var(--emerald)', barClass: 'low' };
     case 'MODERATE': return { color: 'var(--amber)', barClass: 'moderate' };
-    case 'HEAVY': return { color: '#c47a3c', barClass: 'heavy' };
+    case 'HEAVY': return { color: 'var(--olive)', barClass: 'heavy' };
     case 'CONGESTED': return { color: 'var(--rose)', barClass: 'congested' };
     default: return { color: 'var(--text-muted)', barClass: 'low' };
   }

@@ -19,7 +19,7 @@ export interface Bus {
 // Data provenance: source identifies where the event came from.
 // is_demo_data=true means it was seeded for testing; never display as live AI detection.
 export type EventSource = 'SEED' | 'AI_DETECTION' | 'MANUAL_TEST';
-export type EventStatus = 'ACTIVE' | 'RESOLVED' | 'INVESTIGATING';
+export type EventStatus = 'ACTIVE' | 'RESOLVED' | 'INVESTIGATING' | 'ASSIGNED';
 export type EventPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type TrafficLevel = 'LOW' | 'MODERATE' | 'HEAVY' | 'CONGESTED';
 
@@ -157,4 +157,98 @@ export interface BusRoute {
   gps_mode: string;
   is_simulated_gps: boolean;
   point_count: number;
+}
+
+export interface DetectionItem {
+  track_id: number;
+  confidence: number;
+  first_seen_seconds: number;
+  hits: number;
+  thumbnail_base64: string | null;
+}
+
+export interface VehicleBreakdown {
+  car: number;
+  motorcycle: number;
+  bus: number;
+  truck: number;
+}
+
+export interface ContractorNoticeInput {
+  contractor_name: string;
+  phone: string;
+  email: string;
+  warranty_remaining?: string;
+  notes?: string;
+}
+
+export interface ContractorNotice {
+  id: number;
+  event_id: number;
+  contractor_name: string;
+  phone: string;
+  email: string;
+  warranty_remaining: string | null;
+  notes: string | null;
+  delivery_status: string;
+  sent_at: string;
+}
+
+export interface ContractorNoticeResult {
+  notice: ContractorNotice;
+  event: UrbanEvent;
+  message: string;
+}
+
+export interface DailyCount {
+  date: string;
+  count: number;
+}
+
+export interface HourlyCount {
+  hour: number;
+  count: number;
+}
+
+export interface TrafficTrendPoint {
+  bucket: string;
+  avg_vehicles: number;
+  observations: number;
+}
+
+export interface PeriodBreakdown {
+  label: string;
+  potholes: number;
+  other_events: number;
+  total: number;
+}
+
+export interface DashboardTrends {
+  events_per_day: DailyCount[];
+  events_by_hour: HourlyCount[];
+  traffic_trend: TrafficTrendPoint[];
+  events_by_type: Record<string, number>;
+  pothole_periods: PeriodBreakdown[];
+  total_events: number;
+  has_data: boolean;
+}
+
+export interface HazardAnalysisResponse {
+  frames_analyzed: number;
+  video_duration_seconds: number;
+  pothole_model_loaded: boolean;
+  message: string | null;
+  events_saved: number;
+
+  pothole_count: number;
+  potholes: DetectionItem[];
+
+  crosswalk_count: number;
+  crosswalks: DetectionItem[];
+
+  water_clogging_count: number;
+  water_clogging: DetectionItem[];
+
+  vehicles_avg_per_frame: VehicleBreakdown;
+  vehicles_peak_in_frame: VehicleBreakdown;
 }

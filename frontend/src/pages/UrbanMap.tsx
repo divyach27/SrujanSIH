@@ -17,25 +17,28 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Bus icon (cyan)
+// Bus icon (brand blue)
 const busIcon = L.divIcon({
   html: `<div style="
-    background:#00d4e8;
+    background:var(--blue);
     border:2px solid #fff;
     border-radius:50% 50% 50% 0;
     width:24px;height:24px;
     transform:rotate(-45deg);
-    box-shadow:0 0 12px rgba(0,212,232,0.6);
+    box-shadow:0 0 12px rgba(var(--blue-rgb),0.6);
   "></div>`,
   className: '',
   iconSize: [24, 24],
   iconAnchor: [12, 24],
 });
 
+// NOTE: literal hex (not CSS var()) - these feed Leaflet's SVG/Canvas
+// path rendering (via string interpolation with an alpha suffix below),
+// which cannot resolve CSS custom properties.
 function priorityColor(priority: string): string {
   switch (priority?.toUpperCase()) {
-    case 'HIGH': return '#f43f5e';
-    case 'MEDIUM': return '#f59e0b';
+    case 'HIGH': return '#b8463a';
+    case 'MEDIUM': return '#b9790f';
     case 'CRITICAL': return '#ff2244';
     default: return '#64748b';
   }
@@ -136,30 +139,30 @@ const UrbanMap: React.FC = () => {
             }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontWeight: 600 }}>
                 <span style={{
-                  background: '#00d4e8', borderRadius: '50% 50% 50% 0',
+                  background: 'var(--blue)', borderRadius: '50% 50% 50% 0',
                   width: 10, height: 10, display: 'inline-block',
                   transform: 'rotate(-45deg)', border: '1.5px solid #fff'
                 }} />
                 🚌 BUS POSITION (BUS_01)
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                <span style={{ background: '#64748b', borderRadius: '2px', width: 14, height: 4, display: 'inline-block', borderTop: '1px dashed #94a3b8' }} />
+                <span style={{ background: 'var(--text-muted)', borderRadius: '2px', width: 14, height: 4, display: 'inline-block', borderTop: '1px dashed #94a3b8' }} />
                 PLANNED ROUTE
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                <span style={{ background: '#00d4e8', borderRadius: '2px', width: 14, height: 4, display: 'inline-block' }} />
+                <span style={{ background: 'var(--blue)', borderRadius: '2px', width: 14, height: 4, display: 'inline-block' }} />
                 TRAVELLED PATH
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                <span style={{ background: '#f43f5e', borderRadius: '50%', width: 8, height: 8, display: 'inline-block', boxShadow: '0 0 6px #f43f5e' }} />
+                <span style={{ background: 'var(--rose)', borderRadius: '50%', width: 8, height: 8, display: 'inline-block', boxShadow: '0 0 6px var(--rose)' }} />
                 ⚠ ROAD HAZARD · HIGH
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                <span style={{ background: '#f59e0b', borderRadius: '50%', width: 8, height: 8, display: 'inline-block' }} />
+                <span style={{ background: 'var(--amber)', borderRadius: '50%', width: 8, height: 8, display: 'inline-block' }} />
                 ⚠ MEDIUM
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                <span style={{ background: '#64748b', borderRadius: '50%', width: 8, height: 8, display: 'inline-block' }} />
+                <span style={{ background: 'var(--text-muted)', borderRadius: '50%', width: 8, height: 8, display: 'inline-block' }} />
                 📍 SIMULATED GPS (other events)
               </span>
               <span style={{ marginLeft: 'auto', fontWeight: 600, color: 'var(--amber)' }}>
@@ -197,12 +200,12 @@ const UrbanMap: React.FC = () => {
                   />
                 )}
 
-                {/* Travelled path (cyan solid) */}
+                {/* Travelled path (brand blue solid) */}
                 {travelled.length >= 2 && (
                   <Polyline
                     positions={travelled}
                     pathOptions={{
-                      color: '#00d4e8',
+                      color: '#3457b2',
                       weight: 3,
                       opacity: 0.85,
                       lineCap: 'round',
